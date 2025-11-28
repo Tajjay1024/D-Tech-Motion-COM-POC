@@ -3,6 +3,9 @@ Created on Nov 25, 2025
 
 @author: tajja
 '''
+# This script is based on example code from:
+# https://www.pyserial.org/docs/getting-started
+# Modified by Tajjay Jackson for D-Tech Motion POC
 import serial
 import time
 
