@@ -5,6 +5,7 @@ spot occupancy detection, including processing user input to update LED status a
 */
 #include "LoRaWan_APP.h"
 #include "Arduino.h"
+#include "esp_task_wdt.h"
 
 #define RF_FREQUENCY        902500000
 #define TX_OUTPUT_POWER     5
@@ -15,6 +16,7 @@ spot occupancy detection, including processing user input to update LED status a
 
 #define LED_PIN 35
 #define BUFFER_SIZE 64
+#define WDT_TIMEOUT 10
 
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
@@ -37,6 +39,14 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
+  // Configure Task WDT
+  esp_task_wdt_config_t wdt_config = {};
+  wdt_config.timeout_ms = WDT_TIMEOUT * 1000;  // timeout in milliseconds
+  esp_task_wdt_init(&wdt_config);
+
+  // Add current task (loop) to WDT
+  esp_task_wdt_add(NULL);
+   
   RadioEvents.TxDone = OnTxDone;
   RadioEvents.RxDone = OnRxDone;
   Radio.Init(&RadioEvents);
@@ -53,6 +63,8 @@ void setup() {
 
 // === LOOP ===
 void loop() {
+
+  esp_task_wdt_reset();
 
   // Check for user input
   if (Serial.available() > 0) {
@@ -91,6 +103,7 @@ void OnTxDone(void) {
   Radio.Rx(0);
 }
 
+
 void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
   payload[size] = '\0';
   Serial.printf("Received: %s | RSSI: %d\n", payload, rssi);
@@ -100,7 +113,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
     occupied = true;
     digitalWrite(LED_PIN, LOW);
     Serial.println("STATE: OCCUPIED");
-     delay(10000); 
+     
   }
   state = STATE_IDLE;
 }
